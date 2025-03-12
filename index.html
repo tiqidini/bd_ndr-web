@@ -246,34 +246,68 @@
             display: none;
         }
 
-        /* Стили для фильтров */
+        /* Новые стили для фильтров */
         .filters-wrapper {
             display: none;
             margin-bottom: 1rem;
             animation: fadeIn 0.3s ease-out;
+            background: white;
+            border-radius: var(--border-radius);
+            padding: 1rem;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
         }
 
-        .filter-chips {
+        .filters-row {
             display: flex;
+            gap: 1rem;
+            align-items: center;
             flex-wrap: wrap;
-            gap: 0.5rem;
-            margin-bottom: 1rem;
         }
 
-        .filter-chip {
+        .filter-group {
+            flex: 1;
+            min-width: 200px;
+        }
+
+        .filter-label {
+            font-size: 0.9rem;
+            color: #64748b;
+            margin-bottom: 0.5rem;
+            display: block;
+        }
+
+        .filter-select {
+            width: 100%;
+            padding: 0.75rem;
+            border: 2px solid #e2e8f0;
+            border-radius: 8px;
+            font-size: 0.95rem;
+            color: var(--text-color);
             background-color: white;
-            border: 2px solid var(--primary-color);
-            color: var(--primary-color);
-            padding: 0.5rem 1rem;
-            border-radius: 20px;
-            font-weight: 500;
             cursor: pointer;
-            transition: all 0.2s;
+            appearance: none;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%236b7280'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 9l-7 7-7-7'%3E%3C/path%3E%3C/svg%3E");
+            background-repeat: no-repeat;
+            background-position: right 0.75rem center;
+            background-size: 1rem;
         }
 
-        .filter-chip.active {
-            background-color: var(--primary-color);
-            color: white;
+        .filter-select:focus {
+            outline: none;
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+        }
+
+        .records-count {
+            background: white;
+            border-radius: var(--border-radius);
+            padding: 0.75rem 1rem;
+            margin-bottom: 1rem;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            color: var(--text-color);
+            font-weight: 500;
+            animation: fadeIn 0.3s ease-out;
+            display: none;
         }
 
         /* Стили для PWA */
@@ -323,19 +357,28 @@
         <div class="pin-form" id="pinForm">
             <h2 class="h3 mb-4">Введіть PIN-код для доступу</h2>
             <input type="password" class="pin-input" id="pinInput" maxlength="4" placeholder="****">
-            <button class="btn btn-primary btn-lg mt-3" onclick="checkPin()">Увійти</button>
         </div>
 
         <!-- Основной контент -->
         <div class="content-hidden" id="mainContent">
+            <div class="records-count" id="recordsCount"></div>
             <div class="filters-wrapper" id="filtersWrapper">
-                <div class="filter-chips" id="yearFilters">
-                    <!-- Фильтры по годам будут добавлены динамически -->
-                </div>
-                <div class="filter-chips">
-                    <button class="filter-chip" data-type="thesis">Тези</button>
-                    <button class="filter-chip" data-type="research">НДР</button>
-                    <button class="filter-chip" data-type="report">ОЗ</button>
+                <div class="filters-row">
+                    <div class="filter-group">
+                        <label class="filter-label">Рік</label>
+                        <select class="filter-select" id="yearFilter">
+                            <option value="">Всі роки</option>
+                        </select>
+                    </div>
+                    <div class="filter-group">
+                        <label class="filter-label">Тип</label>
+                        <select class="filter-select" id="typeFilter">
+                            <option value="">Всі типи</option>
+                            <option value="thesis">Тези</option>
+                            <option value="research">НДР</option>
+                            <option value="report">ОЗ</option>
+                        </select>
+                    </div>
                 </div>
             </div>
             <div class="search-wrapper">
@@ -363,6 +406,7 @@
             document.getElementById('pinForm').style.display = 'none';
             document.getElementById('mainContent').style.display = 'block';
             document.querySelector('.search-wrapper').style.display = 'block';
+            document.querySelector('.records-count').style.display = 'block';
             initializeTable();
         } else {
             alert('Невірний PIN-код');
@@ -380,32 +424,48 @@
         ).join('');
     }
 
+    function getRecordType(code) {
+        if (code.toLowerCase().includes('т')) return 'thesis';
+        if (code.toLowerCase().includes('н')) return 'research';
+        if (code.toLowerCase().includes('о')) return 'report';
+        return 'thesis'; // По умолчанию считаем Тезисами
+    }
+
     function initializeTable() {
         $.getJSON("data.json", function(data) {
             // Сортируем данные по году в убывающем порядке
             data.sort((a, b) => b.year - a.year);
             
-            // Инициализация фильтров по годам
+            // Инициализация фильтра по годам
             const years = [...new Set(data.map(item => item.year))].sort((a, b) => b - a);
-            const yearFiltersHtml = years.map(year => 
-                `<button class="filter-chip" data-year="${year}">${year}</button>`
+            const yearFilterHtml = years.map(year => 
+                `<option value="${year}">${year}</option>`
             ).join('');
-            $('#yearFilters').html(yearFiltersHtml);
+            $('#yearFilter').append(yearFilterHtml);
 
-            let activeYearFilter = null;
-            let activeTypeFilter = null;
+            let activeYearFilter = '';
+            let activeTypeFilter = '';
 
-            function getRecordType(code) {
-                if (code.includes('Т')) return 'thesis';
-                if (code.includes('Н')) return 'research';
-                if (code.includes('О')) return 'report';
-                return 'other';
+            function updateRecordsCount(count) {
+                const total = data.length;
+                let text = `Показано ${count} `;
+                if (count === 1) {
+                    text += 'запис';
+                } else if (count % 10 === 1 && count % 100 !== 11) {
+                    text += 'запис';
+                } else if ([2, 3, 4].includes(count % 10) && ![12, 13, 14].includes(count % 100)) {
+                    text += 'записи';
+                } else {
+                    text += 'записів';
+                }
+                text += ` з ${total}`;
+                $('#recordsCount').text(text);
             }
 
             function renderRecords(searchText = '') {
                 var recordsHtml = '';
                 const filteredData = data.filter(record => {
-                    const matchesYear = !activeYearFilter || record.year === activeYearFilter;
+                    const matchesYear = !activeYearFilter || record.year.toString() === activeYearFilter;
                     const matchesType = !activeTypeFilter || getRecordType(record.code) === activeTypeFilter;
                     const matchesSearch = !searchText || 
                         record.code.toLowerCase().includes(searchText.toLowerCase()) ||
@@ -425,7 +485,7 @@
                         'thesis': 'Тези',
                         'research': 'НДР',
                         'report': 'ОЗ'
-                    }[recordType] || '';
+                    }[recordType];
 
                     const recordHtml = `
                         <div class="record-wrapper">
@@ -442,30 +502,17 @@
                 });
 
                 $('#recordsContainer').html(recordsHtml || '<div class="p-4 text-center text-muted">Нічого не знайдено</div>');
+                updateRecordsCount(filteredData.length);
             }
 
             // Обработчики фильтров
-            $('.filter-chip[data-year]').click(function() {
-                const year = parseInt($(this).data('year'));
-                $('.filter-chip[data-year]').removeClass('active');
-                if (activeYearFilter === year) {
-                    activeYearFilter = null;
-                } else {
-                    $(this).addClass('active');
-                    activeYearFilter = year;
-                }
+            $('#yearFilter').on('change', function() {
+                activeYearFilter = $(this).val();
                 renderRecords($('#customSearch').val());
             });
 
-            $('.filter-chip[data-type]').click(function() {
-                const type = $(this).data('type');
-                $('.filter-chip[data-type]').removeClass('active');
-                if (activeTypeFilter === type) {
-                    activeTypeFilter = null;
-                } else {
-                    $(this).addClass('active');
-                    activeTypeFilter = type;
-                }
+            $('#typeFilter').on('change', function() {
+                activeTypeFilter = $(this).val();
                 renderRecords($('#customSearch').val());
             });
 
@@ -484,9 +531,9 @@
         });
     }
 
-    // Обработка ввода PIN-кода по нажатию Enter
-    document.getElementById('pinInput').addEventListener('keypress', function(e) {
-        if (e.key === 'Enter') {
+    // Автоматический вход по PIN-коду
+    document.getElementById('pinInput').addEventListener('input', function(e) {
+        if (this.value.length === 4) {
             checkPin();
         }
     });
