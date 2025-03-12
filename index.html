@@ -2,7 +2,7 @@
 <html lang="uk">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no, user-scalable=no">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no, viewport-fit=cover">
     <title>Перегляд бази даних NDRS</title>
     <!-- PWA Meta Tags -->
     <meta name="apple-mobile-web-app-capable" content="yes">
@@ -11,6 +11,15 @@
     <link rel="manifest" href="manifest.json">
     <link rel="apple-touch-icon" href="icons/icon-192x192.png">
     <meta name="theme-color" content="#2563eb">
+    <!-- Добавляем все размеры иконок для iOS -->
+    <link rel="apple-touch-icon" sizes="72x72" href="icons/icon-72x72.png">
+    <link rel="apple-touch-icon" sizes="96x96" href="icons/icon-96x96.png">
+    <link rel="apple-touch-icon" sizes="128x128" href="icons/icon-128x128.png">
+    <link rel="apple-touch-icon" sizes="144x144" href="icons/icon-144x144.png">
+    <link rel="apple-touch-icon" sizes="152x152" href="icons/icon-152x152.png">
+    <link rel="apple-touch-icon" sizes="192x192" href="icons/icon-192x192.png">
+    <link rel="apple-touch-icon" sizes="384x384" href="icons/icon-384x384.png">
+    <link rel="apple-touch-icon" sizes="512x512" href="icons/icon-512x512.png">
     <!-- Bootstrap 5 CSS -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <!-- DataTables CSS -->
@@ -45,16 +54,51 @@
         .header-section {
             background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
             color: white;
-            padding: 2.5rem 0;
-            margin-bottom: 2rem;
+            padding: 1rem 0;
+            margin-bottom: 1rem;
             border-radius: 0 0 var(--border-radius) var(--border-radius);
             box-shadow: 0 10px 25px rgba(37, 99, 235, 0.1);
         }
 
         .header-section h1 {
-            font-family: 'Montserrat', sans-serif;
-            font-weight: 700;
-            letter-spacing: -0.02em;
+            font-size: 1.5rem !important;
+            margin-bottom: 0.25rem !important;
+        }
+
+        .header-section p {
+            font-size: 1rem !important;
+            margin-bottom: 0 !important;
+        }
+
+        .compact-controls {
+            display: flex;
+            gap: 0.5rem;
+            margin-bottom: 1rem;
+            flex-wrap: wrap;
+        }
+
+        .compact-controls > div {
+            flex: 1;
+            min-width: 150px;
+        }
+
+        .search-wrapper {
+            margin-bottom: 0.5rem;
+        }
+
+        .filter-select {
+            padding: 0.5rem;
+            font-size: 0.9rem;
+        }
+
+        .filter-label {
+            margin-bottom: 0.25rem;
+        }
+
+        .records-count {
+            font-size: 0.9rem;
+            padding: 0.5rem 0.75rem;
+            margin-bottom: 0.5rem;
         }
 
         .card {
@@ -62,27 +106,6 @@
             box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
             border: none;
             background: white;
-        }
-
-        .search-wrapper {
-            display: none;
-            background: white;
-            border-radius: var(--border-radius);
-            padding: 1rem;
-            margin-bottom: 1.5rem;
-            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
-            animation: fadeIn 0.3s ease-out;
-        }
-
-        @keyframes fadeIn {
-            from {
-                opacity: 0;
-                transform: translateY(-10px);
-            }
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
         }
 
         .search-box {
@@ -312,8 +335,24 @@
 
         /* Стили для PWA */
         @media (display-mode: standalone) {
+            body {
+                position: fixed;
+                width: 100%;
+                height: 100%;
+                overflow: hidden;
+            }
+
+            .container {
+                height: 100%;
+                overflow-y: auto;
+                padding-top: env(safe-area-inset-top);
+                padding-bottom: env(safe-area-inset-bottom);
+            }
+
             .header-section {
-                padding-top: 3rem;
+                position: sticky;
+                top: 0;
+                z-index: 1000;
             }
         }
 
@@ -345,10 +384,8 @@
 <body>
     <div class="header-section">
         <div class="container">
-            <h1 class="display-4 mb-2">
-                <i class="fas fa-database me-2"></i>База даних NDRS
-            </h1>
-            <p class="lead mb-0">Система управління науково-дослідними роботами</p>
+            <h1><i class="fas fa-database me-2"></i>База даних NDRS</h1>
+            <p class="lead">Система управління науково-дослідними роботами</p>
         </div>
     </div>
 
@@ -361,29 +398,22 @@
 
         <!-- Основной контент -->
         <div class="content-hidden" id="mainContent">
-            <div class="records-count" id="recordsCount"></div>
-            <div class="filters-wrapper" id="filtersWrapper">
-                <div class="filters-row">
-                    <div class="filter-group">
-                        <label class="filter-label">Рік</label>
-                        <select class="filter-select" id="yearFilter">
-                            <option value="">Всі роки</option>
-                        </select>
-                    </div>
-                    <div class="filter-group">
-                        <label class="filter-label">Тип</label>
-                        <select class="filter-select" id="typeFilter">
-                            <option value="">Всі типи</option>
-                            <option value="thesis">Тези</option>
-                            <option value="research">НДР</option>
-                            <option value="report">ОЗ</option>
-                        </select>
-                    </div>
+            <div class="compact-controls">
+                <div class="search-wrapper">
+                    <input type="text" id="customSearch" class="search-box" placeholder="Пошук...">
+                </div>
+                <div class="filter-group">
+                    <select class="filter-select" id="yearFilter">
+                        <option value="">Всі роки</option>
+                    </select>
+                </div>
+                <div class="filter-group">
+                    <select class="filter-select" id="typeFilter">
+                        <option value="">Всі типи</option>
+                    </select>
                 </div>
             </div>
-            <div class="search-wrapper">
-                <input type="text" id="customSearch" class="search-box" placeholder="Пошук за всіма полями...">
-            </div>
+            <div class="records-count" id="recordsCount"></div>
             <div class="card">
                 <div class="card-body" id="recordsContainer">
                     <!-- Записи будуть завантажені динамічно -->
@@ -436,6 +466,13 @@
             // Сортируем данные по году в убывающем порядке
             data.sort((a, b) => b.year - a.year);
             
+            // Получаем уникальные типы из notes
+            const types = [...new Set(data.map(item => item.notes))].sort();
+            const typeFilterHtml = types.map(type => 
+                `<option value="${type}">${type}</option>`
+            ).join('');
+            $('#typeFilter').append(typeFilterHtml);
+
             // Инициализация фильтра по годам
             const years = [...new Set(data.map(item => item.year))].sort((a, b) => b - a);
             const yearFilterHtml = years.map(year => 
@@ -448,17 +485,7 @@
 
             function updateRecordsCount(count) {
                 const total = data.length;
-                let text = `Показано ${count} `;
-                if (count === 1) {
-                    text += 'запис';
-                } else if (count % 10 === 1 && count % 100 !== 11) {
-                    text += 'запис';
-                } else if ([2, 3, 4].includes(count % 10) && ![12, 13, 14].includes(count % 100)) {
-                    text += 'записи';
-                } else {
-                    text += 'записів';
-                }
-                text += ` з ${total}`;
+                let text = `${count} з ${total}`;
                 $('#recordsCount').text(text);
             }
 
@@ -466,7 +493,7 @@
                 var recordsHtml = '';
                 const filteredData = data.filter(record => {
                     const matchesYear = !activeYearFilter || record.year.toString() === activeYearFilter;
-                    const matchesType = !activeTypeFilter || getRecordType(record.code) === activeTypeFilter;
+                    const matchesType = !activeTypeFilter || record.notes === activeTypeFilter;
                     const matchesSearch = !searchText || 
                         record.code.toLowerCase().includes(searchText.toLowerCase()) ||
                         record.title.toLowerCase().includes(searchText.toLowerCase()) ||
@@ -480,12 +507,6 @@
                     const highlightedTitle = highlightText(record.title, searchText);
                     const highlightedNotes = highlightText(record.notes, searchText);
                     const highlightedYear = highlightText(record.year.toString(), searchText);
-                    const recordType = getRecordType(record.code);
-                    const typeLabel = {
-                        'thesis': 'Тези',
-                        'research': 'НДР',
-                        'report': 'ОЗ'
-                    }[recordType];
 
                     const recordHtml = `
                         <div class="record-wrapper">
@@ -493,8 +514,7 @@
                             <div class="title-cell mb-2">${highlightedTitle}</div>
                             <div>
                                 <span class="badge year-badge me-2">${highlightedYear}</span>
-                                <span class="type-badge ${recordType}">${typeLabel}</span>
-                                <span class="badge notes-badge">${highlightedNotes}</span>
+                                <span class="type-badge thesis">${highlightedNotes}</span>
                             </div>
                         </div>
                     `;
